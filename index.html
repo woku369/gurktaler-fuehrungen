@@ -407,7 +407,7 @@ footer{background:var(--green);border-top:1px solid rgba(255,255,255,.07);paddin
 </div>
 
 <script>
-// SERVER_URL: Tailscale Funnel URL des NAS, z.B. 'https://ds124-rockinkg.XXXXX.ts.net:3007'
+// SERVER_URL: Tailscale Funnel URL des NAS (TerminMeister Port 3005), z.B. 'https://ds124-rockinkg.XXXXX.ts.net'
 // Leer lassen = Offline-Modus (kein Backend, kein E-Mail-Versand)
 const SERVER_URL = '';
 
@@ -416,7 +416,7 @@ const kap={t1:30,t2:30,t3:30,t4:30};
 
 // Kapazität vom Server laden (wenn konfiguriert)
 if(SERVER_URL){
-  fetch(SERVER_URL+'/api/kapazitaet',{signal:AbortSignal.timeout(4000)})
+  fetch(SERVER_URL+'/api/fuehrungen/kapazitaet',{signal:AbortSignal.timeout(4000)})
     .then(r=>r.json()).then(data=>{
       Object.assign(kap,data);
       document.querySelectorAll('input[name="termin"]').forEach(r=>{
@@ -454,7 +454,7 @@ document.getElementById('buchungsForm').addEventListener('submit',async function
   if(SERVER_URL){
     btn.disabled=true;btn.textContent='Wird gesendet…';
     try{
-      const r=await fetch(SERVER_URL+'/api/buchen',{
+      const r=await fetch(SERVER_URL+'/api/fuehrungen/buchen',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({terminId:sel.value,personen:p,vorname,nachname,email,telefon})
