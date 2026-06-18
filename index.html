@@ -166,7 +166,7 @@ input.err~.f-err{display:block;}
 .dom-divider{background:var(--green);padding:32px 40px;display:flex;align-items:center;justify-content:center;gap:32px;overflow:hidden;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);}
 .dom-divider img{height:100px;width:auto;opacity:.22;filter:invert(1) brightness(1.5);mix-blend-mode:screen;}
 .dom-text{font-family:'Montserrat',sans-serif;font-weight:300;font-size:clamp(18px,2.5vw,28px);color:rgba(255,255,255,.35);letter-spacing:2px;text-align:center;}
-@media(max-width:600px){.dom-divider{padding:24px 20px;}.dom-divider img{height:70px;}}
+br.dom-br{display:none;}@media(max-width:600px){.dom-divider{padding:24px 20px;}.dom-divider img{display:none;}br.dom-br{display:inline;}.dom-text{font-size:18px;letter-spacing:1.5px;line-height:1.9;}}
 
 /* ── FOOTER ──────────────────────────── */
 footer{background:var(--green);border-top:1px solid rgba(255,255,255,.07);padding:48px 40px 32px;}
@@ -357,7 +357,7 @@ footer{background:var(--green);border-top:1px solid rgba(255,255,255,.07);paddin
 <!-- DOM DIVIDER -->
 <div class="dom-divider">
   <img id="dom-l" src="" alt="">
-  <div class="dom-text">Gurktaler &nbsp;&middot;&nbsp; Stift Gurk &nbsp;&middot;&nbsp; Kärnten</div>
+  <div class="dom-text">Gurktaler<br class="dom-br">&nbsp;&middot;&nbsp; Stift Gurk &nbsp;&middot;&nbsp;<br class="dom-br">Kärnten</div>
   <img id="dom-r" src="" alt="" style="transform:scaleX(-1);">
 </div>
 
