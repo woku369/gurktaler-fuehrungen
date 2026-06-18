@@ -407,12 +407,34 @@ footer{background:var(--green);border-top:1px solid rgba(255,255,255,.07);paddin
 </div>
 
 <script>
+// SERVER_URL: Tailscale Funnel URL des NAS, z.B. 'https://ds124-rockinkg.XXXXX.ts.net:3007'
+// Leer lassen = Offline-Modus (kein Backend, kein E-Mail-Versand)
+const SERVER_URL = '';
+
 let p=1;
 const kap={t1:30,t2:30,t3:30,t4:30};
+
+// Kapazität vom Server laden (wenn konfiguriert)
+if(SERVER_URL){
+  fetch(SERVER_URL+'/api/kapazitaet',{signal:AbortSignal.timeout(4000)})
+    .then(r=>r.json()).then(data=>{
+      Object.assign(kap,data);
+      document.querySelectorAll('input[name="termin"]').forEach(r=>{
+        const id=r.value;
+        const sp=r.closest('.t-opt')?.querySelector('.t-spots');
+        if(sp&&kap[id]!==undefined)sp.textContent=kap[id]>0?kap[id]+' Plätze frei':'Ausgebucht';
+        if(kap[id]===0){r.disabled=true;r.closest('.t-tile')?.classList.add('sold-out');}
+      });
+      const cur=document.querySelector('input[name="termin"]:checked');
+      if(cur)chP(0);
+    }).catch(()=>{});
+}
+
 function getMax(){const s=document.querySelector('input[name="termin"]:checked');return s?Math.min(30,kap[s.value]||30):30;}
 function chP(d){const m=getMax();p=Math.max(1,Math.min(m,p+d));document.getElementById('pAnz').textContent=p;document.getElementById('btnM').disabled=p<=1;document.getElementById('btnP').disabled=p>=m;document.getElementById('preisH').textContent='\u20ac '+(p*15).toLocaleString('de-AT')+',\u2013';}
 document.querySelectorAll('input[name="termin"]').forEach(r=>{r.addEventListener('change',()=>{document.getElementById('maxH').textContent=getMax();if(p>getMax())p=getMax();chP(0);});});
-document.getElementById('buchungsForm').addEventListener('submit',function(e){
+
+document.getElementById('buchungsForm').addEventListener('submit',async function(e){
   e.preventDefault();let ok=true;
   const sel=document.querySelector('input[name="termin"]:checked');
   const te=document.getElementById('tErr');
@@ -420,10 +442,47 @@ document.getElementById('buchungsForm').addEventListener('submit',function(e){
   ['vn','nn','em'].forEach(id=>{const el=document.getElementById(id);const bad=!el.value.trim()||(id==='em'&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value));el.classList.toggle('err',bad);if(bad)ok=false;});
   ['dsgvo','agb'].forEach(id=>{const cb=document.getElementById(id);const w=cb.closest('.chk');w.style.outline=cb.checked?'':'2px solid var(--error)';w.style.borderRadius='2px';if(!cb.checked)ok=false;});
   if(!ok)return;
+
+  const btn=document.querySelector('.btn-submit');
+  const vorname=document.getElementById('vn').value.trim();
+  const nachname=document.getElementById('nn').value.trim();
+  const email=document.getElementById('em').value.trim();
+  const telefon=document.getElementById('tel').value.trim();
   const dl=sel.closest('.t-opt').querySelector('.t-date').textContent;
   const tl=sel.closest('.t-opt').querySelector('.t-time').textContent;
-  document.getElementById('succD').innerHTML='<strong>Termin:</strong> '+dl+', '+tl+'<br><strong>Personen:</strong> '+p+'<br><strong>Name:</strong> '+document.getElementById('vn').value.trim()+' '+document.getElementById('nn').value.trim()+'<br><strong>Bestätigung an:</strong> '+document.getElementById('em').value.trim()+'<br><strong>Gesamtpreis:</strong> \u20ac '+(p*15).toLocaleString('de-AT')+',\u2013 (vor Ort)';
-  document.getElementById('succOv').classList.add('show');
+
+  if(SERVER_URL){
+    btn.disabled=true;btn.textContent='Wird gesendet…';
+    try{
+      const r=await fetch(SERVER_URL+'/api/buchen',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({terminId:sel.value,personen:p,vorname,nachname,email,telefon})
+      });
+      const data=await r.json();
+      if(!r.ok)throw new Error(data.error||'Serverfehler ('+r.status+')');
+      document.getElementById('succD').innerHTML=
+        '<strong>Buchungsnr.:</strong> '+data.buchungId+'<br>'+
+        '<strong>Termin:</strong> '+dl+', '+tl+'<br>'+
+        '<strong>Personen:</strong> '+p+'<br>'+
+        '<strong>Name:</strong> '+vorname+' '+nachname+'<br>'+
+        '<strong>Bestätigung an:</strong> '+email+'<br>'+
+        '<strong>Gesamtpreis:</strong> \u20ac '+(p*15).toLocaleString('de-AT')+',\u2013 (vor Ort)';
+      document.getElementById('succOv').classList.add('show');
+      kap[sel.value]=Math.max(0,(kap[sel.value]||30)-p);
+    }catch(err){
+      alert('Fehler beim Senden: '+err.message+'\n\nBitte versuchen Sie es erneut oder kontaktieren Sie uns direkt.');
+    }finally{btn.disabled=false;btn.textContent='JETZT VERBINDLICH BUCHEN';}
+  }else{
+    // Offline-Modus: lokale Bestätigung ohne Serververbindung
+    document.getElementById('succD').innerHTML=
+      '<strong>Termin:</strong> '+dl+', '+tl+'<br>'+
+      '<strong>Personen:</strong> '+p+'<br>'+
+      '<strong>Name:</strong> '+vorname+' '+nachname+'<br>'+
+      '<strong>Bestätigung an:</strong> '+email+'<br>'+
+      '<strong>Gesamtpreis:</strong> \u20ac '+(p*15).toLocaleString('de-AT')+',\u2013 (vor Ort)';
+    document.getElementById('succOv').classList.add('show');
+  }
 });
 </script>
 <script>

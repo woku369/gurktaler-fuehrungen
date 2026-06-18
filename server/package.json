@@ -1,0 +1,12 @@
+{
+  "name": "fuehrungen-server",
+  "version": "1.0.0",
+  "description": "Gurktaler Kräuterführungen — Buchungsserver",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.0"
+  }
+}
