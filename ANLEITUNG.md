@@ -74,7 +74,45 @@ Der TerminMeister-Server (`server.js`) läuft bereits auf der NAS unter:
 ```
 Die Führungs-Erweiterung ist in dieser Datei integriert — **kein separater Server** notwendig.
 
-### Schritt 2: nodemailer installieren (einmalig per SSH)
+### Schritt 2: nodemailer installieren + Brevo einrichten
+
+→ Siehe ausführlichen Abschnitt **„Brevo SMTP einrichten"** weiter unten.  
+Das muss vor dem ersten E-Mail-Versand gemacht werden, der Server funktioniert aber auch ohne.
+
+### Schritt 3: Startbefehl im Synology Task Scheduler hinterlegen
+
+Damit der Server nach jedem NAS-Neustart automatisch mit den richtigen Einstellungen startet:
+
+**DSM → Systemsteuerung → Aufgabenplaner → bestehende Boot-Task bearbeiten** (oder neu erstellen: Ausgelöste Aufgabe → Benutzerdefiniertes Skript)
+
+- **Ereignis:** Bootup  
+- **Benutzer:** root  
+- **Befehl** (alles in **einer Zeile**, Platzhalter ersetzen):
+
+```
+sleep 30 && cd /volume1/Gurktaler/terminmeister && ADMIN_PASS=Gurktaler NOTIFY_TO=diwk@aon.at FROM_EMAIL=diwk@aon.at SMTP_HOST=smtp-relay.brevo.com SMTP_PORT=587 SMTP_USER=diwk@aon.at SMTP_PASS=DEIN_BREVO_SCHLÜSSEL node server.js >> /volume1/Gurktaler/terminmeister/logs/server.log 2>&1
+```
+
+> **Wichtig:** Der Befehl muss **eine einzige Zeile** sein — kein Umbruch, kein `\`. Das DSM-Textfeld scrollt horizontal.  
+> Platzhalter: `Gurktaler` = Admin-Passwort für Marlies, `DEIN_BREVO_SCHLÜSSEL` = SMTP-Key aus Brevo.
+
+---
+
+## Brevo SMTP einrichten (E-Mail-Versand)
+
+### Was ist Brevo und warum brauchen wir das?
+
+Wenn ein Server (wie die NAS) direkt E-Mails verschickt, landen diese fast immer im **Spam-Ordner** des Empfängers — weil große E-Mail-Anbieter (GMX, AON, Gmail) solchen E-Mails nicht vertrauen.
+
+**Brevo** ist ein professioneller **E-Mail-Versanddienstleister**. Der Server schickt die E-Mails nicht selbst, sondern über Brevo — und Brevo sorgt dafür, dass die E-Mails ankommen. Brevo ist kostenlos bis **300 E-Mails pro Tag**, was für unsere Führungen mehr als ausreichend ist.
+
+> **Vergleich:** Ähnlich wie man für Briefe die Post nutzt, statt selbst ein Lieferfahrzeug anzuschaffen — Brevo übernimmt die Zustellung.
+
+**nodemailer** ist die Software auf dem Server, die die Verbindung zu Brevo herstellt. Das ist bereits im Server integriert, muss aber noch installiert werden (→ Abschnitt darunter).
+
+---
+
+### Schritt 1: nodemailer auf der NAS installieren (einmalig)
 
 ```bash
 ssh Wolfgang@100.121.103.107
@@ -82,55 +120,81 @@ cd /volume1/Gurktaler/terminmeister
 npm install nodemailer
 ```
 
-Falls noch kein `package.json` vorhanden ist:
-```bash
-npm init -y
-npm install nodemailer
-```
-
-### Schritt 3: Startbefehl konfigurieren (Synology Task Scheduler)
-
-Im DSM → Systemsteuerung → Aufgabenplaner → Erstellen → Ausgelöste Aufgabe → Benutzerdefiniertes Skript
-
-- **Ereignis:** Bootup
-- **Benutzer:** root
-- **Befehl:**
-
-```bash
-sleep 30 && cd /volume1/Gurktaler/terminmeister && \
-  APP_PORT=3005 \
-  ADMIN_PASS=IHR_ADMIN_PASSWORT \
-  NOTIFY_TO=diwk@aon.at \
-  FROM_EMAIL=diwk@aon.at \
-  SMTP_HOST=smtp-relay.brevo.com \
-  SMTP_PORT=587 \
-  SMTP_USER=diwk@aon.at \
-  SMTP_PASS=IHR_BREVO_SMTP_KEY \
-  nohup node server.js >> /volume1/Gurktaler/terminmeister/logs/server.log 2>&1
-```
-
-> Platzhalter ersetzen: `IHR_ADMIN_PASSWORT` und `IHR_BREVO_SMTP_KEY`
+Kurze Erfolgsmeldung erwartet: `added 1 package`. Danach den Server neu starten.
 
 ---
 
-## Brevo SMTP einrichten (E-Mail-Versand)
+### Schritt 2: Brevo-Konto erstellen
 
-Brevo ist ein kostenloser E-Mail-Dienst (300 E-Mails/Tag kostenlos).
+1. Browser öffnen, zu **https://app.brevo.com** gehen
+2. **„Kostenlos registrieren"** klicken
+3. E-Mail-Adresse eingeben: `diwk@aon.at`
+4. Passwort wählen und Konto bestätigen (Bestätigungs-E-Mail kommt)
+5. Nach dem Login: Firmenname eingeben (z.B. „Stift Gurk"), Kategorie: „Sonstige"
 
-1. **Registrieren:** https://app.brevo.com — mit `diwk@aon.at`
-2. Im Menü: **SMTP & API** → **SMTP**
-3. **SMTP-Key generieren** → diesen Key als `SMTP_PASS` im Startbefehl verwenden
-4. SMTP-Zugangsdaten:
-   - Host: `smtp-relay.brevo.com`
-   - Port: `587`
-   - User: `diwk@aon.at`
-   - Passwort: der generierte SMTP-Key
+---
 
-**Test:** Nach dem ersten Start den Health-Check aufrufen:
+### Schritt 3: SMTP-Schlüssel generieren
+
+1. Im Brevo-Menü links: **SMTP & API** klicken  
+   *(oder direkt: https://app.brevo.com/settings/keys/smtp)*
+2. Tab **„SMTP"** wählen
+3. Button **„Neuen SMTP-Schlüssel generieren"** klicken
+4. Name eingeben: z.B. `TerminMeister NAS`
+5. Den angezeigten Schlüssel **sofort kopieren** — er wird nur einmal angezeigt!
+
+Der Schlüssel sieht ungefähr so aus:
 ```
-http://100.121.103.107:3005/api/health
+xsmtpsib-abc123def456...  (lange Zeichenkette)
 ```
-Antwort sollte `"status":"online"` zeigen.
+
+---
+
+### Schritt 4: SMTP-Daten im Startbefehl eintragen
+
+Diese Werte kommen in den Startbefehl des Servers (→ Abschnitt „Task Scheduler"):
+
+| Variable | Wert |
+|---|---|
+| `SMTP_HOST` | `smtp-relay.brevo.com` |
+| `SMTP_PORT` | `587` |
+| `SMTP_USER` | `diwk@aon.at` *(Brevo-Login-E-Mail)* |
+| `SMTP_PASS` | der generierte SMTP-Schlüssel aus Schritt 3 |
+
+---
+
+### Schritt 5: Server neu starten mit SMTP-Konfiguration
+
+```bash
+ssh Wolfgang@100.121.103.107
+ps aux | grep "node server" | grep -v grep
+# → angezeigte PID notieren, dann:
+kill <PID>
+
+cd /volume1/Gurktaler/terminmeister
+ADMIN_PASS=Gurktaler NOTIFY_TO=diwk@aon.at FROM_EMAIL=diwk@aon.at \
+  SMTP_HOST=smtp-relay.brevo.com SMTP_PORT=587 \
+  SMTP_USER=diwk@aon.at SMTP_PASS=DEIN_BREVO_SCHLÜSSEL \
+  nohup node server.js >> logs/server.log 2>&1 &
+```
+
+---
+
+### Schritt 6: E-Mail-Versand testen
+
+Im Log sollte jetzt **nicht mehr** `[MAIL-MOCK]` stehen, sondern `[MAIL] ✓ gesendet`.
+
+```bash
+tail -20 /volume1/Gurktaler/terminmeister/logs/server.log
+```
+
+Eine Test-Buchung über das Formular aufgeben und prüfen, ob die Bestätigungs-E-Mail ankommt.
+
+---
+
+### Was passiert, wenn Brevo nicht konfiguriert ist?
+
+Der Server läuft trotzdem — er zeigt dann im Log `[MAIL-MOCK]` und die E-Mail-Inhalte werden nur protokolliert, aber **nicht verschickt**. Buchungen werden normal gespeichert. Das System ist also auch ohne E-Mail funktionsfähig, nur der Versand fehlt.
 
 ---
 
@@ -242,6 +306,33 @@ Automatische Backups vor jedem Schreibvorgang:
 ```
 /volume1/Gurktaler/terminmeister/backups/
 ```
+
+---
+
+## TerminMeister Desktop-App neu installieren (Windows)
+
+Ein Bug in der Desktop-App zeigte bei der Teilnehmeranzahl fälschlicherweise „1" vor, obwohl „0" korrekt wäre. Dieser Bug wurde behoben — für die Korrektur ist ein neuer Build nötig.
+
+### Neuen Build erstellen (am Windows-PC mit dem Quellcode)
+
+```powershell
+# Im TerminMeister-Verzeichnis (dort wo package.json liegt):
+cd C:\Pfad\zu\TerminMeister
+npm run build-portable
+```
+
+Der Build dauert ca. 1–2 Minuten. Das fertige Programm liegt danach in:
+```
+dist_electron\TerminMeister <Version>.exe
+```
+
+### Auf anderen PCs verteilen
+
+Die fertige `.exe` kann direkt auf andere Rechner kopiert werden — **kein Installer, kein Admin-Recht nötig** (Portable-Version).
+
+### Alte Version deinstallieren
+
+Falls die alte EXE noch irgendwo gespeichert ist, einfach löschen und durch die neue ersetzen.
 
 ---
 
