@@ -1,7 +1,7 @@
 # Roadmap — Gurktaler Kräuterführungen Buchungsseite
 
-**Letztes Update:** Juni 2026  
-**Live:** https://woku369.github.io/gurktaler-fuehrungen/  
+**Letztes Update:** 2026-06-20
+**Live:** https://woku369.github.io/gurktaler-fuehrungen/
 **Repo:** https://github.com/woku369/gurktaler-fuehrungen
 
 ---
@@ -20,13 +20,13 @@
 - [x] 2-Spalten-Layout: Inhaltsbereich + Sidebar
 - [x] Programmablauf-Box (3 Schritte)
 - [x] Schlechtwetter-Box (3 Szenarien)
-- [x] Hinweise-Box (Mindest-TN, Bezahlung, Storno, Treffpunkt-Platzhalter)
+- [x] Hinweise-Box (Mindest-TN, Bezahlung, Storno, Treffpunkt)
 - [x] Kräutermeister-Box (Dipl.-Ing. Wolfgang Kulmitzer)
 - [x] Goodie-Bag-Band
 - [x] Dom-Divider-Sektion
 - [x] Footer (Kontakt, Rechtliches, Social Icons)
 
-### Buchungsformular (Frontend-Mockup)
+### Buchungsformular
 - [x] Termin-Auswahl (Radio-Buttons mit Restkapazitäts-Anzeige)
 - [x] Personen-Stepper (1–30, durch Restkapazität begrenzt)
 - [x] Kontaktfelder (Vorname, Nachname, E-Mail, Telefon optional)
@@ -34,6 +34,8 @@
 - [x] Client-seitige Validierung (Pflichtfelder, E-Mail-Format, Checkboxen)
 - [x] Success-Overlay mit Buchungszusammenfassung
 - [x] Preis-Live-Anzeige (€ 15,– × Personenanzahl)
+- [x] Live-Kapazitätsprüfung gegen NAS-Server (`/api/fuehrungen/kapazitaet`)
+- [x] Offline-Fallback (Buchung weiterhin möglich, Hinweis ohne Echtzeitdaten)
 
 ### Assets & Performance
 - [x] Alle Bilder als Base64 eingebettet (self-contained, kein externer Asset-Server nötig)
@@ -42,72 +44,97 @@
 - [x] Cormorant Garamond (ungenutzt) aus Google-Fonts-Link entfernt
 - [x] **Dateigröße: 1,25 MB → 465 KB (−63%)**
 
+### Backend & Infrastruktur (Juni 2026)
+- [x] **Echtes Backend** via TerminMeister-Server (Port 3005) auf Synology DS124
+- [x] API-Routen auf TerminMeister integriert: `/api/fuehrungen/kapazitaet`, `/api/fuehrungen/buchen`
+- [x] **Kapazitätsverwaltung** — Buchungen in `appointments.json` statt hartcodiertem Objekt
+- [x] **Schreiblock** gegen Race Conditions via `safeWriteJson`
+- [x] **E-Mail-Versand via Brevo SMTP** (300/Tag kostenlos, nodemailer):
+  - [x] Buchungsbestätigung an Gast (Termin, Personenzahl, Buchungsnr., Treffpunkt, Preis)
+  - [x] Admin-Benachrichtigung an `diwk@aon.at` bei jeder Buchung
+  - [x] Absage-E-Mail an alle gebuchten Gäste eines Termins
+- [x] **Tailscale Funnel** — NAS öffentlich erreichbar: `https://ds124-rockingk.tail334b55.ts.net`
+- [x] `SERVER_URL` in `index.html` auf Funnel-URL gesetzt
+
+### Admin-Dashboard für Marlies (Juni 2026)
+- [x] URL: `http://100.121.103.107:3005/fuehrungen-admin` / `https://ds124-rockingk.tail334b55.ts.net/fuehrungen-admin`
+- [x] HTTP Basic Auth (`ADMIN_PASS` Umgebungsvariable)
+- [x] Buchungsübersicht: 4 Termine, Kapazitätsbalken, Tabelle mit Kontaktdaten
+- [x] Quelle-Spalte: Online (Web-Buchung) vs. Direkt (manuell)
+- [x] **„+ Termin manuell erfassen"** — telefonische/direkte Anmeldungen eintragen
+- [x] Termin absagen mit E-Mail an alle Gäste
+- [x] Auto-Refresh alle 30 Sekunden
+- [x] Vollständige Betriebsanleitung: `ANLEITUNG.md`
+
+### TerminMeister-Integration (Juni 2026)
+- [x] Web-Buchungen werden im vollständigen TerminMeister-Format gespeichert
+  (`title`, `start`, `end`, `type`, `status`, `location`, `gruppengröße`, Kontaktfelder)
+- [x] Erscheinen direkt im TerminMeister-Kalender am jeweiligen Führungstag
+- [x] Manuelle Buchungen (Marlies) ebenfalls TerminMeister-kompatibel (`buchungsquelle: 'intern'`)
+- [x] Kapazität zählt online und manuelle Buchungen gemeinsam
+
 ### Deployment
 - [x] GitHub Pages (live unter woku369.github.io/gurktaler-fuehrungen)
+- [x] QR-Code (686×686px, 300dpi, Gurktaler-Grün, G-Logo-Zentrum) als Download in TerminMeister Handbuch
 
 ---
 
-## Offen — Inhaltlich
+## Offen
 
-> Lieferung durch Wolfgang Kulmitzer / Büro
+### Kurzfristig
+- [ ] **E-Mail-Test bestätigen** — `[MAIL] Gesendet` im NAS-Log nach echter Buchung prüfen
+- [ ] **DSM Task Scheduler** — Startbefehl mit SMTP-Variablen eintragen (für Autostart nach Neustart)
+- [ ] **DSGVO-konforme Datenspeicherung** — Löschfristen dokumentieren, Datenschutzerklärung verlinken
 
-- [ ] **Echte Terminliste** — Datum + Uhrzeit aller Führungen 2025/2026 (aktuell Platzhalter-Daten)
-- [ ] **Treffpunkt** — konkreter Ort/Beschreibung (aktuell `[Platzhalter]` in der Sidebar)
-- [ ] **Stimmungsbilder** — je ein Foto Kräutergarten + Mazerationsraum (für geplante Bildsektion)
-- [ ] **E-Mail-Adresse** klären — `fuehrungen@gurktaler.at` / `info@gurktaler.at` / Marlies direkt
-- [ ] **Angebotsstruktur** klären — öffentliche Einzelbuchung vs. B2B-Busgruppen (separates Angebot?)
+### Mittelfristig
+- [ ] **DNS-Subdomain** `fuehrungen.gurktaler.at` via CNAME auf GitHub Pages (Global Village / bevelop)
+- [ ] **Bildgalerie** — Kräutergarten + Mazerationsraum (wenn Fotos von Wolfgang vorliegen)
+- [ ] **Schlechtwetter-E-Mail** — Template und Versand-Trigger (Wolfgang entscheidet Vorabend 18:00)
+- [ ] **Buchungsschluss** — automatisch 3 Tage vor Termin (Frontend + Backend)
+- [ ] **Mobile-Test** auf echtem Gerät validieren
 
----
-
-## Offen — Technisch
-
-### Priorität Hoch (MVP-Backend)
-- [ ] **Echtes Backend** für Formular-Submission (aktuell nur Client-Mockup, keine Datenpersistenz)
-- [ ] **Kapazitätsverwaltung** — Buchungen in JSON/DB statt hartcodiertem `kap`-Objekt
-- [ ] **Buchungsbestätigung per E-Mail** — automatisch nach erfolgreicher Buchung (Template liegt vor)
-- [ ] **Schreiblock** gegen Race Conditions bei gleichzeitigen Buchungen
-
-### Priorität Mittel
-- [ ] **Admin-Ansicht** für Marlies Maunz — Buchungsübersicht, TN-Zahlen je Termin, Export
-- [ ] **E-Mail-Automatisierung vollständig** — alle 4 Templates:
-  1. Buchungsbestätigung (sofort)
-  2. Absage wegen Mindest-TN (3 Tage vorher)
-  3. Schlechtwetter-Information (Vorabend)
-  4. Unwetter-Absage (Vorabend)
-- [ ] **SMTP-Relay** einrichten (z. B. Brevo Free) — direkter NAS-Mailversand landet im Spam
-- [ ] **DSGVO-konforme Datenspeicherung** (Löschfristen, Datenschutzerklärung verlinken)
-- [ ] **HTTP Basic Auth** für Admin-Ansicht (Buchungsdaten sind DSGVO-relevant)
-
-### Priorität Niedrig
-- [ ] **Mobile-Test** auf echtem Gerät (Breakpoints vorhanden, aber nicht auf Smartphone verifiziert)
-- [ ] **DNS-Subdomain** `fuehrungen.gurktaler.at` via CNAME auf GitHub Pages / NAS (Global Village)
-- [ ] **Bildgalerie** Kräutergarten + Mazerationsraum (sobald Fotos von Wolfgang vorliegen)
-- [ ] **Assets auslagern** — Base64 → separate Dateien mit Cache-Header (sinnvoll erst wenn Backend läuft)
-- [ ] **WordPress-Integration** klären — GitHub Pages dauerhaft oder Einbettung in gurktaler.at (Agentur bevelop)?
+### Saison 2027 (Oktober 2026)
+- [ ] Neue Termine in `FUEHRUNGEN_TERMINE` in `server.js` eintragen
+- [ ] Terminliste in `index.html` aktualisieren (4 Radio-Buttons)
+- [ ] Auf NAS deployen + GitHub Pages pushen
 
 ---
 
 ## Architektur-Notizen
 
 ### Aktueller Stand
-- Eine einzige `index.html`, self-contained (alle Assets eingebettet)
-- Reine Client-Logik, kein Server
-- Hosting: GitHub Pages
-
-### Geplante Backend-Architektur (Empfehlung)
-- Node.js HTTP-Server auf NAS, served via Tailscale Funnel (analog LagerMeister-Architektur)
-- JSON-Dateien als Datenquelle (`buchungen.json`, `termine.json`)
-- SMTP-Relay für E-Mail-Versand (Brevo o.ä.)
-- Admin-HTML als zweite Seite auf demselben Server
+```
+Buchungsseite (GitHub Pages)
+  https://woku369.github.io/gurktaler-fuehrungen/
+          │
+          │  POST /api/fuehrungen/buchen
+          │  GET  /api/fuehrungen/kapazitaet
+          ▼
+TerminMeister-Server (Synology DS124, Port 3005)
+  https://ds124-rockingk.tail334b55.ts.net   ← Tailscale Funnel
+  http://100.121.103.107:3005                ← intern (Tailscale)
+          │
+          ├── appointments.json  ← Web + manuelle Buchungen (TerminMeister-Format)
+          ├── E-Mail via Brevo SMTP (smtp-relay.brevo.com:587)
+          └── /fuehrungen-admin  ← Admin-Dashboard (Marlies)
+```
 
 ### Geschäftslogik-Referenz
 | Regel | Detail |
 |---|---|
 | Kapazität | Max. 30 Personen/Termin |
 | Mindest-TN | 10 Personen — Absage 3 Tage vorher |
-| Buchungsschluss | 3 Tage vor Termin |
+| Buchungsschluss | 3 Tage vor Termin (noch nicht automatisiert) |
 | Storno | Kostenlos bis 3 Tage vorher per E-Mail |
 | Bezahlung | Ausschließlich vor Ort (Bar/Karte) |
 | Preis | € 15,– pro Person |
 | Schlechtwetter | Wolfgang entscheidet Vorabend 18:00 Uhr |
 | Samstagstermine | Marlies nicht verfügbar → Wolfgang versendet direkt |
+
+### Termine Saison 2026
+| ID | Datum | Tag | Uhrzeit | Kapazität |
+|---|---|---|---|---|
+| t1 | 19.07.2026 | So | 14:00 Uhr | 30 Personen |
+| t2 | 15.08.2026 | Sa | 13:00 Uhr | 30 Personen |
+| t3 | 13.09.2026 | So | 14:00 Uhr | 30 Personen |
+| t4 | 18.10.2026 | So | 14:00 Uhr | 30 Personen |
